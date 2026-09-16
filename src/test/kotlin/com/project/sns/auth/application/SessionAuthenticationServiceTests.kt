@@ -29,7 +29,7 @@ class SessionAuthenticationServiceTests {
 
     @Test
     fun `인증 결과를 세션 전략에 적용하고 SecurityContext에 저장한다`() {
-        val authentication = UsernamePasswordAuthenticationToken.authenticated("user@example.com", null, emptyList())
+        val authentication = UsernamePasswordAuthenticationToken.authenticated("1", null, emptyList())
         val request = MockHttpServletRequest()
         val response = MockHttpServletResponse()
         val sessionStrategy = RecordingSessionAuthenticationStrategy()
@@ -47,7 +47,7 @@ class SessionAuthenticationServiceTests {
 
     @Test
     fun `세션 전략의 최대 세션 초과를 애플리케이션 예외로 변환하고 컨텍스트를 저장하지 않는다`() {
-        val authentication = UsernamePasswordAuthenticationToken.authenticated("user@example.com", null, emptyList())
+        val authentication = UsernamePasswordAuthenticationToken.authenticated("1", null, emptyList())
         val request = MockHttpServletRequest()
         val response = MockHttpServletResponse()
         val contextRepository = RecordingSecurityContextRepository()

@@ -10,6 +10,7 @@ enum class ErrorType {
     BAD_REQUEST,
     UNAUTHORIZED,
     FORBIDDEN,
+    NOT_FOUND,
     CONFLICT,
     INTERNAL_SERVER_ERROR,
 }

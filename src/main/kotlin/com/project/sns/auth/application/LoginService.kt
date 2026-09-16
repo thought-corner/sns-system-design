@@ -23,7 +23,7 @@ class LoginService(
         }
         return LoginResult(
             authentication = authentication,
-            user = userService.getByEmail(authentication.name),
+            user = userService.getById(checkNotNull(authentication.userIdOrNull()) { "인증 주체의 username 이 users.id 형식이 아닙니다" }),
         )
     }
 }

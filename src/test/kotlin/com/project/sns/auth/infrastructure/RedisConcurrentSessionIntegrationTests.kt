@@ -1,8 +1,11 @@
 package com.project.sns.auth.infrastructure
 
+import com.project.sns.PostgresTest
+import com.project.sns.user.infrastructure.SpringDataUserJpaRepository
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -22,15 +25,14 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @SpringBootTest(webEnvironment = WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @ActiveProfiles("redis-integration")
+@PostgresTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@Testcontainers(disabledWithoutDocker = true)
 class RedisConcurrentSessionIntegrationTests {
     @Autowired
     private lateinit var mockMvc: MockMvc
@@ -40,6 +42,15 @@ class RedisConcurrentSessionIntegrationTests {
 
     @Autowired
     private lateinit var redisTemplate: StringRedisTemplate
+
+    @Autowired
+    private lateinit var userRepository: SpringDataUserJpaRepository
+
+    // PG 컨테이너를 다른 컨텍스트와 공유하므로 잔여 사용자 행을 가정하지 않는다.
+    @BeforeEach
+    fun cleanUpUsers() {
+        userRepository.deleteAll()
+    }
 
     @Test
     fun `동시 로그인에서도 Redis에 하나의 활성 세션만 생성한다`() {
@@ -70,11 +81,12 @@ class RedisConcurrentSessionIntegrationTests {
             val statuses = attempts.map { it.get(10, TimeUnit.SECONDS) }.sorted()
 
             assertEquals(listOf(200, 409), statuses)
+            val principalName = requireNotNull(userRepository.findByEmail(EMAIL)?.id).toString()
             assertEquals(
                 1,
                 sessionRepository.findByIndexNameAndIndexValue(
                     FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME,
-                    EMAIL,
+                    principalName,
                 ).size,
             )
             assertTrue(redisTemplate.keys("sns:session:login-lock:*").isEmpty())

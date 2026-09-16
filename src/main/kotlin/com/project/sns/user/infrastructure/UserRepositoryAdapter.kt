@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository
 class UserRepositoryAdapter(
     private val jpaRepository: SpringDataUserJpaRepository,
 ) : UserRepository {
+    override fun findById(id: Long): User? = jpaRepository.findById(id).orElse(null)
+
     override fun findByEmail(email: String): User? = jpaRepository.findByEmail(email)
 
     override fun existsByEmail(email: String): Boolean = jpaRepository.existsByEmail(email)

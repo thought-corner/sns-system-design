@@ -11,6 +11,7 @@ import kotlin.test.assertTrue
 
 @SpringBootTest
 @Import(TestSessionConfig::class)
+@PostgresTest
 class SnsApplicationTests {
     @Autowired
     private lateinit var dataSource: DataSource

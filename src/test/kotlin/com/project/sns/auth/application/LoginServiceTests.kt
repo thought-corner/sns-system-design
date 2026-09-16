@@ -15,15 +15,15 @@ import kotlin.test.assertSame
 class LoginServiceTests {
     @Test
     fun `자격증명을 인증하고 인증 주체의 사용자를 반환한다`() {
-        val authentication = UsernamePasswordAuthenticationToken.authenticated(EMAIL, null, emptyList())
+        val authentication = UsernamePasswordAuthenticationToken.authenticated(USER_ID.toString(), null, emptyList())
         val authenticationManager = AuthenticationManager { request ->
             assertEquals(EMAIL, request.name)
             assertEquals(PASSWORD, request.credentials)
             authentication
         }
-        val user = User(email = EMAIL, passwordHash = "encoded", nickname = "테스터", id = 1L)
+        val user = User(email = EMAIL, passwordHash = "encoded", nickname = "테스터", id = USER_ID)
         val userService = mock(UserService::class.java)
-        doReturn(user).`when`(userService).getByEmail(EMAIL)
+        doReturn(user).`when`(userService).getById(USER_ID)
 
         val result = LoginService(userService, authenticationManager).login(EMAIL, PASSWORD)
 
@@ -47,6 +47,7 @@ class LoginServiceTests {
     }
 
     companion object {
+        private const val USER_ID = 1L
         private const val EMAIL = "user@example.com"
         private const val PASSWORD = "password123!"
     }

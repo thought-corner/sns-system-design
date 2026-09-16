@@ -2,6 +2,7 @@ package com.project.sns.user.application
 
 import com.project.sns.user.domain.User
 import com.project.sns.user.domain.UserAlreadyExistsException
+import com.project.sns.user.domain.UserNotFoundException
 import com.project.sns.user.domain.UserRepository
 import java.util.Locale
 import org.springframework.dao.DataIntegrityViolationException
@@ -42,10 +43,13 @@ class UserService(
         ?: throw UsernameNotFoundException("사용자를 찾을 수 없습니다.")
 
     @Transactional(readOnly = true)
+    fun getById(id: Long): User = userRepository.findById(id) ?: throw UserNotFoundException()
+
+    @Transactional(readOnly = true)
     override fun loadUserByUsername(username: String): UserDetails {
         val user = getByEmail(username)
         return org.springframework.security.core.userdetails.User
-            .withUsername(user.email)
+            .withUsername(requireNotNull(user.id).toString())
             .password(user.passwordHash)
             .roles("USER")
             .build()

@@ -16,6 +16,8 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  flyway:
+    locations: classpath:db/migration/common,classpath:db/migration/{vendor}
 server:
   servlet:
     session:

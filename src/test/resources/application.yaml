@@ -1,11 +1,11 @@
 spring:
   profiles:
     active: test
-  datasource:
-    url: jdbc:h2:mem:sns;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
-    password: ""
-    driver-class-name: org.h2.Driver
   jpa:
+    open-in-view: false # main 의 yaml 을 통째로 가리므로 운영과 같은 값을 다시 적는다 — 지연 로딩 차이를 테스트만 통과시키지 않기 위해
     hibernate:
       ddl-auto: validate
+  flyway:
+    locations: classpath:db/migration/common,classpath:db/migration/{vendor}
+# datasource 는 여기 없다 — DB 가 필요한 테스트는 @PostgresTest 로 JVM 당 하나의 PostgreSQL 17 Testcontainer 를 공유하며
+# 접속 정보를 주입받는다(PostgresContainerInitializer).

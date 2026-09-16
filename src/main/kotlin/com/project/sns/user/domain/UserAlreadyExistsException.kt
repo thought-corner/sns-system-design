@@ -12,6 +12,10 @@ enum class UserErrorCode(
         message = "이미 가입된 이메일입니다.",
         type = ErrorType.CONFLICT,
     ),
+    USER_NOT_FOUND(
+        message = "사용자를 찾을 수 없습니다.",
+        type = ErrorType.NOT_FOUND,
+    ),
     ;
 
     override val code: String = name

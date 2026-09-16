@@ -1,9 +1,11 @@
 package com.project.sns.user.application
 
+import com.project.sns.PostgresTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
@@ -18,6 +20,8 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 @DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@PostgresTest
 @Import(UserService::class, UserRepositoryAdapter::class, UserServiceTests.PasswordConfig::class)
 class UserServiceTests {
     @Autowired

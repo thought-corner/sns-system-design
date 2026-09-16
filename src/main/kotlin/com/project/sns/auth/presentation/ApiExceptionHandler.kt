@@ -38,6 +38,7 @@ class ApiExceptionHandler {
         ErrorType.BAD_REQUEST -> HttpStatus.BAD_REQUEST
         ErrorType.UNAUTHORIZED -> HttpStatus.UNAUTHORIZED
         ErrorType.FORBIDDEN -> HttpStatus.FORBIDDEN
+        ErrorType.NOT_FOUND -> HttpStatus.NOT_FOUND
         ErrorType.CONFLICT -> HttpStatus.CONFLICT
         ErrorType.INTERNAL_SERVER_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR
     }
