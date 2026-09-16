@@ -5,7 +5,21 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/sns}
     username: ${DB_USERNAME:sns}
     password: ${DB_PASSWORD:sns}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      repositories:
+        enabled: false
   jpa:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+server:
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${SESSION_COOKIE_SECURE:false}
