@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: sns
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/sns}
+    username: ${DB_USERNAME:sns}
+    password: ${DB_PASSWORD:sns}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
