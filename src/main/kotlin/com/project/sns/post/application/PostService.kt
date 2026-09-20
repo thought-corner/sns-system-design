@@ -10,6 +10,8 @@ import com.project.sns.post.domain.PostCounts
 import com.project.sns.post.domain.PostCountsRepository
 import com.project.sns.post.domain.PostNotFoundException
 import com.project.sns.post.domain.PostRepository
+import com.project.sns.timeline.application.PostReadService
+import com.project.sns.timeline.application.TimelineFanoutPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -20,12 +22,15 @@ class PostService(
     private val postTargetResolver: PostTargetResolver,
     private val mediaAttachmentService: MediaAttachmentService,
     private val mediaViewService: MediaViewService,
+    private val timelineFanoutPublisher: TimelineFanoutPublisher,
+    private val postReadService: PostReadService,
 ) {
     @Transactional
     fun create(authorId: Long, content: String, mediaIds: List<Long> = emptyList()): PostDetail {
         val post = postRepository.save(Post(authorId = authorId, content = content))
         val postId = requireNotNull(post.id)
         mediaAttachmentService.attach(authorId, postId, mediaIds)
+        timelineFanoutPublisher.publishAfterCommit(postId, authorId)
         return PostDetail.of(post, PostCounts(postId = postId), mediaViewService.listForPost(postId))
     }
 
@@ -43,6 +48,7 @@ class PostService(
         }
         val changed = postRepository.softDelete(postId)
         if (changed) {
+            postReadService.evictAfterCommit(postId)
             post.parentPostId?.let { postCountsRepository.decrease(it, PostCountDelta.REPLY) }
             post.quotedPostId?.let { postCountsRepository.decrease(it, PostCountDelta.QUOTE) }
             post.repostOfId?.let { postCountsRepository.decrease(it, PostCountDelta.REPOST) }

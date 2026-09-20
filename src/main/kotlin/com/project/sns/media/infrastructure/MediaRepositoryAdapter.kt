@@ -17,6 +17,11 @@ class MediaRepositoryAdapter(
     override fun findAttached(postId: Long): List<Media> =
         jpaRepository.findByPostIdAndDeletedAtIsNullOrderByPositionAsc(postId)
 
+    override fun findAttachedIn(postIds: Collection<Long>): List<Media> =
+        if (postIds.isEmpty()) emptyList() else jpaRepository.findByPostIdInAndDeletedAtIsNullOrderByPostIdAscPositionAsc(
+            postIds
+        )
+
     @Transactional
     override fun markReady(id: Long, width: Int?, height: Int?): Boolean =
         jpaRepository.markReady(id, width, height) == 1

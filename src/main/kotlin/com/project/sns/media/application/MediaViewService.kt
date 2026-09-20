@@ -17,6 +17,28 @@ class MediaViewService(
     @Transactional(readOnly = true)
     fun listForPost(postId: Long): List<MediaDetail> = mediaRepository.findAttached(postId).map { it.toDetail() }
 
+    @Transactional(readOnly = true)
+    fun listRefsForPosts(postIds: Collection<Long>): Map<Long, List<MediaRef>> =
+        mediaRepository.findAttachedIn(postIds).groupBy({ requireNotNull(it.postId) }, { it.toRef() })
+
+    fun sign(ref: MediaRef): MediaDetail = MediaDetail(
+        id = ref.id,
+        contentType = ref.contentType,
+        sizeBytes = ref.sizeBytes,
+        width = ref.width,
+        height = ref.height,
+        url = mediaStorage.presignDownload(ref.storageKey, properties.downloadUrlTtl),
+    )
+
+    private fun Media.toRef() = MediaRef(
+        id = requireNotNull(id),
+        contentType = contentType,
+        sizeBytes = sizeBytes,
+        width = width,
+        height = height,
+        storageKey = storageKey,
+    )
+
     private fun Media.toDetail() = MediaDetail(
         id = requireNotNull(id),
         contentType = contentType,
@@ -26,6 +48,15 @@ class MediaViewService(
         url = mediaStorage.presignDownload(storageKey, properties.downloadUrlTtl),
     )
 }
+
+data class MediaRef(
+    val id: Long,
+    val contentType: String,
+    val sizeBytes: Long,
+    val width: Int?,
+    val height: Int?,
+    val storageKey: String,
+)
 
 data class MediaDetail(
     val id: Long,

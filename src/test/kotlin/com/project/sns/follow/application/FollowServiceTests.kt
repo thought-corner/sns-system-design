@@ -3,6 +3,7 @@ package com.project.sns.follow.application
 import com.project.sns.follow.domain.FollowCounts
 import com.project.sns.follow.domain.FollowRepository
 import com.project.sns.follow.domain.SelfFollowNotAllowedException
+import com.project.sns.timeline.application.TimelineFollowListener
 import com.project.sns.user.application.UserService
 import com.project.sns.user.domain.User
 import com.project.sns.user.domain.UserNotFoundException
@@ -21,7 +22,8 @@ import kotlin.test.assertTrue
 class FollowServiceTests {
     private val userService = mock(UserService::class.java)
     private val followRepository = mock(FollowRepository::class.java)
-    private val followService = FollowService(userService, followRepository)
+    private val timelineFollowListener = mock(TimelineFollowListener::class.java)
+    private val followService = FollowService(userService, followRepository, timelineFollowListener)
 
     @Test
     fun `대상 사용자를 확인하고 팔로우 관계를 생성한다`() {
@@ -109,7 +111,8 @@ class FollowServiceTests {
     @Test
     fun `팔로워 수와 팔로잉 수를 각각 조회한다`() {
         doReturn(user(TARGET_ID, TARGET_EMAIL)).`when`(userService).getById(TARGET_ID)
-        doReturn(FollowCounts(userId = TARGET_ID, followerCount = 3L, followingCount = 5L)).`when`(followRepository).getCounts(TARGET_ID)
+        doReturn(FollowCounts(userId = TARGET_ID, followerCount = 3L, followingCount = 5L)).`when`(followRepository)
+            .getCounts(TARGET_ID)
 
         val stats = followService.getStats(TARGET_ID)
 

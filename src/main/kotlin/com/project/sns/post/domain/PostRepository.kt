@@ -10,9 +10,15 @@ interface PostRepository {
 
     fun findById(id: Long): Post?
 
+    fun findActiveByIds(ids: Collection<Long>): List<Post>
+
+    fun findActiveIds(ids: Collection<Long>): Set<Long>
+
     fun softDelete(postId: Long): Boolean
 
     fun createRepost(authorId: Long, originalId: Long): Boolean
+
+    fun findActiveRepostId(authorId: Long, originalId: Long): Long?
 
     fun softDeleteRepost(authorId: Long, originalId: Long): Boolean
 
@@ -29,4 +35,6 @@ interface PostLikeRepository : UserPostRelationRepository
 
 interface PostViewRepository {
     fun record(userId: Long, postId: Long): Boolean
+
+    fun findViewedPostIds(userId: Long, postIds: Collection<Long>): Set<Long>
 }

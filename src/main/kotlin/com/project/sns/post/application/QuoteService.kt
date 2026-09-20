@@ -7,6 +7,7 @@ import com.project.sns.post.domain.PostCountDelta
 import com.project.sns.post.domain.PostCounts
 import com.project.sns.post.domain.PostCountsRepository
 import com.project.sns.post.domain.PostRepository
+import com.project.sns.timeline.application.TimelineFanoutPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -17,6 +18,7 @@ class QuoteService(
     private val postCountsRepository: PostCountsRepository,
     private val mediaAttachmentService: MediaAttachmentService,
     private val mediaViewService: MediaViewService,
+    private val timelineFanoutPublisher: TimelineFanoutPublisher,
 ) {
     @Transactional
     fun quote(authorId: Long, quotedPostId: Long, content: String, mediaIds: List<Long> = emptyList()): PostDetail {
@@ -25,6 +27,7 @@ class QuoteService(
         val quoteId = requireNotNull(quote.id)
         postCountsRepository.increase(quotedId, PostCountDelta.QUOTE)
         mediaAttachmentService.attach(authorId, quoteId, mediaIds)
+        timelineFanoutPublisher.publishAfterCommit(quoteId, authorId)
         return PostDetail.of(quote, PostCounts(postId = quoteId), mediaViewService.listForPost(quoteId))
     }
 }

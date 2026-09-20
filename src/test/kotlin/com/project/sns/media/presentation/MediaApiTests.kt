@@ -4,6 +4,7 @@ import com.project.sns.InMemoryMediaStorage
 import com.project.sns.PostgresTest
 import com.project.sns.TestMediaStorageConfig
 import com.project.sns.TestSessionConfig
+import com.project.sns.TestTimelineConfig
 import com.project.sns.media.TestImages
 import com.project.sns.media.domain.MediaStatus
 import com.project.sns.media.infrastructure.SpringDataMediaJpaRepository
@@ -34,7 +35,7 @@ import kotlin.test.assertTrue
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestSessionConfig::class, TestMediaStorageConfig::class)
+@Import(TestSessionConfig::class, TestMediaStorageConfig::class, TestTimelineConfig::class)
 @PostgresTest
 class MediaApiTests {
     @Autowired

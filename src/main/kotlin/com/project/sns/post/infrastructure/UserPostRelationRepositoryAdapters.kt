@@ -18,4 +18,7 @@ class PostViewRepositoryAdapter(
     private val jpaRepository: SpringDataPostViewJpaRepository,
 ) : PostViewRepository {
     override fun record(userId: Long, postId: Long): Boolean = jpaRepository.insertIfAbsent(userId, postId) == 1
+
+    override fun findViewedPostIds(userId: Long, postIds: Collection<Long>): Set<Long> =
+        if (postIds.isEmpty()) emptySet() else jpaRepository.findViewedPostIds(userId, postIds).toSet()
 }

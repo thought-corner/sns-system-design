@@ -11,6 +11,8 @@ import com.project.sns.post.domain.PostCounts
 import com.project.sns.post.domain.PostCountsRepository
 import com.project.sns.post.domain.PostNotFoundException
 import com.project.sns.post.domain.PostRepository
+import com.project.sns.timeline.application.PostReadService
+import com.project.sns.timeline.application.TimelineFanoutPublisher
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.doReturn
@@ -30,8 +32,18 @@ class PostServiceTests {
     private val postTargetResolver = mock(PostTargetResolver::class.java)
     private val mediaAttachmentService = mock(MediaAttachmentService::class.java)
     private val mediaViewService = mock(MediaViewService::class.java)
+    private val timelineFanoutPublisher = mock(TimelineFanoutPublisher::class.java)
+    private val postReadService = mock(PostReadService::class.java)
     private val postService =
-        PostService(postRepository, postCountsRepository, postTargetResolver, mediaAttachmentService, mediaViewService)
+        PostService(
+            postRepository,
+            postCountsRepository,
+            postTargetResolver,
+            mediaAttachmentService,
+            mediaViewService,
+            timelineFanoutPublisher,
+            postReadService
+        )
 
     @Test
     fun `작성 직후의 게시글은 통계를 조회하지 않고 0 으로 응답한다`() {

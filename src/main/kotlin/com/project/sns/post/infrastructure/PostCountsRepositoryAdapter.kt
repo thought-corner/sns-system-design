@@ -13,6 +13,9 @@ class PostCountsRepositoryAdapter(
     override fun get(postId: Long): PostCounts =
         countsRepository.findById(postId).orElseGet { PostCounts(postId = postId) }
 
+    override fun getAll(postIds: Collection<Long>): Map<Long, PostCounts> =
+        if (postIds.isEmpty()) emptyMap() else countsRepository.findAllById(postIds).associateBy { it.postId }
+
     override fun increase(postId: Long, delta: PostCountDelta) {
         countsRepository.addCounts(postId, delta.reply, delta.quote, delta.repost, delta.like, delta.view)
     }

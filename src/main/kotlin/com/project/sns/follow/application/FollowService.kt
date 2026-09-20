@@ -2,6 +2,7 @@ package com.project.sns.follow.application
 
 import com.project.sns.follow.domain.FollowRepository
 import com.project.sns.follow.domain.SelfFollowNotAllowedException
+import com.project.sns.timeline.application.TimelineFollowListener
 import com.project.sns.user.application.UserService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional
 class FollowService(
     private val userService: UserService,
     private val followRepository: FollowRepository,
+    private val timelineFollowListener: TimelineFollowListener,
 ) {
     @Transactional
     fun follow(followerId: Long, followingId: Long): FollowResult {
@@ -19,6 +21,7 @@ class FollowService(
         val changed = followRepository.create(followerId, followingId)
         if (changed) {
             followRepository.increaseCounts(followerId, followingId)
+            timelineFollowListener.afterFollow(followerId, followingId)
         }
         return FollowResult(changed = changed)
     }
@@ -30,6 +33,7 @@ class FollowService(
         val changed = followRepository.softDelete(followerId, followingId)
         if (changed) {
             followRepository.decreaseCounts(followerId, followingId)
+            timelineFollowListener.afterUnfollow(followerId, followingId)
         }
         return FollowResult(changed = changed)
     }

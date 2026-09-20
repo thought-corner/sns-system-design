@@ -7,6 +7,8 @@ interface MediaRepository {
 
     fun findAttached(postId: Long): List<Media>
 
+    fun findAttachedIn(postIds: Collection<Long>): List<Media>
+
     fun markReady(id: Long, width: Int?, height: Int?): Boolean
 
     fun attach(id: Long, ownerId: Long, postId: Long, position: Int): Boolean

@@ -19,6 +19,9 @@ interface SpringDataPostViewJpaRepository : JpaRepository<PostView, PostViewId> 
     )
     fun insertIfAbsent(@Param("userId") userId: Long, @Param("postId") postId: Long): Int
 
+    @Query("SELECT view.id.postId FROM PostView view WHERE view.id.userId = :userId AND view.id.postId IN :postIds")
+    fun findViewedPostIds(@Param("userId") userId: Long, @Param("postIds") postIds: Collection<Long>): List<Long>
+
     @Query("SELECT COUNT(view) FROM PostView view WHERE view.id.postId = :postId")
     fun countByPostId(@Param("postId") postId: Long): Long
 }

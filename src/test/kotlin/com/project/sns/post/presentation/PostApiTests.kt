@@ -3,6 +3,7 @@ package com.project.sns.post.presentation
 import com.project.sns.PostgresTest
 import com.project.sns.TestMediaStorageConfig
 import com.project.sns.TestSessionConfig
+import com.project.sns.TestTimelineConfig
 import com.project.sns.post.domain.Post
 import com.project.sns.post.infrastructure.SpringDataPostCountsJpaRepository
 import com.project.sns.post.infrastructure.SpringDataPostJpaRepository
@@ -38,7 +39,7 @@ import kotlin.test.assertNull
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestSessionConfig::class, TestMediaStorageConfig::class)
+@Import(TestSessionConfig::class, TestMediaStorageConfig::class, TestTimelineConfig::class)
 @PostgresTest
 class PostApiTests {
     @Autowired

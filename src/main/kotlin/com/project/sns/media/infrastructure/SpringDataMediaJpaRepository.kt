@@ -11,6 +11,8 @@ interface SpringDataMediaJpaRepository : JpaRepository<Media, Long> {
 
     fun findByPostIdAndDeletedAtIsNullOrderByPositionAsc(postId: Long): List<Media>
 
+    fun findByPostIdInAndDeletedAtIsNullOrderByPostIdAscPositionAsc(postIds: Collection<Long>): List<Media>
+
     @Modifying
     @Query(
         value = """

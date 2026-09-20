@@ -11,6 +11,13 @@ import org.springframework.data.repository.query.Param
 interface SpringDataPostJpaRepository : JpaRepository<Post, Long> {
     fun findByIdAndDeletedAtIsNull(id: Long): Post?
 
+    fun findByIdInAndDeletedAtIsNull(ids: Collection<Long>): List<Post>
+
+    @Query("SELECT post.id FROM Post post WHERE post.id IN :ids AND post.deletedAt IS NULL")
+    fun findActiveIdsIn(@Param("ids") ids: Collection<Long>): List<Long>
+
+    fun findByAuthorIdAndRepostOfIdAndDeletedAtIsNull(authorId: Long, repostOfId: Long): Post?
+
     @Lock(LockModeType.PESSIMISTIC_READ)
     @Query("SELECT post FROM Post post WHERE post.id = :id AND post.deletedAt IS NULL")
     fun findActiveByIdForShare(@Param("id") id: Long): Post?

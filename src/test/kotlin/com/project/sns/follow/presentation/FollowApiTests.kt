@@ -3,6 +3,7 @@ package com.project.sns.follow.presentation
 import com.project.sns.PostgresTest
 import com.project.sns.TestMediaStorageConfig
 import com.project.sns.TestSessionConfig
+import com.project.sns.TestTimelineConfig
 import com.project.sns.follow.infrastructure.SpringDataFollowCountsJpaRepository
 import com.project.sns.follow.infrastructure.SpringDataFollowJpaRepository
 import com.project.sns.user.domain.User
@@ -34,7 +35,7 @@ import kotlin.test.assertNull
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestSessionConfig::class, TestMediaStorageConfig::class)
+@Import(TestSessionConfig::class, TestMediaStorageConfig::class, TestTimelineConfig::class)
 @PostgresTest
 class FollowApiTests {
     @Autowired

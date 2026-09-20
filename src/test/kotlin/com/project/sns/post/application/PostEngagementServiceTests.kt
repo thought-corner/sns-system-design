@@ -7,6 +7,8 @@ import com.project.sns.post.domain.PostLikeRepository
 import com.project.sns.post.domain.PostNotFoundException
 import com.project.sns.post.domain.PostRepository
 import com.project.sns.post.domain.PostViewRepository
+import com.project.sns.timeline.application.PostReadService
+import com.project.sns.timeline.application.TimelineFanoutPublisher
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.doThrow
@@ -25,7 +27,10 @@ class PostEngagementServiceTests {
     private val postLikeRepository = mock(PostLikeRepository::class.java)
     private val postViewRepository = mock(PostViewRepository::class.java)
 
-    private val repostService = RepostService(postTargetResolver, postRepository, postCountsRepository)
+    private val timelineFanoutPublisher = mock(TimelineFanoutPublisher::class.java)
+    private val postReadService = mock(PostReadService::class.java)
+    private val repostService =
+        RepostService(postTargetResolver, postRepository, postCountsRepository, timelineFanoutPublisher, postReadService)
     private val likeService = LikeService(postTargetResolver, postCountsRepository, postLikeRepository)
     private val viewService = ViewService(postTargetResolver, postCountsRepository, postViewRepository)
 
@@ -50,10 +55,12 @@ class PostEngagementServiceTests {
     @Test
     fun `리포스트 취소는 활성 리포스트 행이 있었을 때만 리포스트 수를 내린다`() {
         doReturn(post()).`when`(postTargetResolver).resolveTarget(POST_ID)
+        doReturn(REPOST_ROW_ID).`when`(postRepository).findActiveRepostId(USER_ID, POST_ID)
         doReturn(true).`when`(postRepository).softDeleteRepost(USER_ID, POST_ID)
 
         assertTrue(repostService.undoRepost(USER_ID, POST_ID).changed)
         verify(postCountsRepository).decrease(POST_ID, PostCountDelta.REPOST)
+        verify(postReadService).evictAfterCommit(REPOST_ROW_ID)
     }
 
     @Test
@@ -63,6 +70,7 @@ class PostEngagementServiceTests {
 
         assertFalse(repostService.undoRepost(USER_ID, POST_ID).changed)
         verify(postCountsRepository, never()).decrease(POST_ID, PostCountDelta.REPOST)
+        verifyNoInteractions(postReadService)
     }
 
     @Test
