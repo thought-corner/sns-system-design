@@ -1,14 +1,20 @@
 package com.project.sns.post.application
 
+import com.project.sns.media.application.MediaAttachmentService
+import com.project.sns.media.application.MediaDetail
+import com.project.sns.media.application.MediaViewService
+import com.project.sns.media.domain.MediaNotReadyException
 import com.project.sns.post.domain.NotPostAuthorException
 import com.project.sns.post.domain.Post
 import com.project.sns.post.domain.PostCountDelta
 import com.project.sns.post.domain.PostCounts
+import com.project.sns.post.domain.PostCountsRepository
 import com.project.sns.post.domain.PostNotFoundException
 import com.project.sns.post.domain.PostRepository
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.doReturn
+import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.inOrder
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
@@ -20,18 +26,45 @@ import kotlin.test.assertTrue
 
 class PostServiceTests {
     private val postRepository = mock(PostRepository::class.java)
-    private val postService = PostService(postRepository)
+    private val postCountsRepository = mock(PostCountsRepository::class.java)
+    private val postTargetResolver = mock(PostTargetResolver::class.java)
+    private val mediaAttachmentService = mock(MediaAttachmentService::class.java)
+    private val mediaViewService = mock(MediaViewService::class.java)
+    private val postService =
+        PostService(postRepository, postCountsRepository, postTargetResolver, mediaAttachmentService, mediaViewService)
 
     @Test
     fun `작성 직후의 게시글은 통계를 조회하지 않고 0 으로 응답한다`() {
-        doReturn(post(POST_ID, AUTHOR_ID)).`when`(postRepository).save(any(Post::class.java) ?: post(POST_ID, AUTHOR_ID))
+        doReturn(post(POST_ID, AUTHOR_ID)).`when`(postRepository)
+            .save(any(Post::class.java) ?: post(POST_ID, AUTHOR_ID))
 
         val detail = postService.create(AUTHOR_ID, "본문")
 
         assertEquals(POST_ID, detail.id)
         assertEquals(0L, detail.counts.replyCount)
         assertEquals(0L, detail.counts.viewCount)
-        verify(postRepository, never()).getCounts(POST_ID)
+        verify(postCountsRepository, never()).get(POST_ID)
+    }
+
+    @Test
+    fun `mediaIds 가 있으면 작성 트랜잭션 안에서 같은 순서로 첨부하고 응답에 싣는다`() {
+        doReturn(post(POST_ID, AUTHOR_ID)).`when`(postRepository)
+            .save(any(Post::class.java) ?: post(POST_ID, AUTHOR_ID))
+        doReturn(listOf(mediaDetail(31L), mediaDetail(30L))).`when`(mediaViewService).listForPost(POST_ID)
+
+        val detail = postService.create(AUTHOR_ID, "본문", listOf(31L, 30L))
+
+        verify(mediaAttachmentService).attach(AUTHOR_ID, POST_ID, listOf(31L, 30L))
+        assertEquals(listOf(31L, 30L), detail.media.map { it.id })
+    }
+
+    @Test
+    fun `첨부에 실패하면 예외가 그대로 나가 게시글 작성이 롤백된다`() {
+        doReturn(post(POST_ID, AUTHOR_ID)).`when`(postRepository)
+            .save(any(Post::class.java) ?: post(POST_ID, AUTHOR_ID))
+        doThrow(MediaNotReadyException()).`when`(mediaAttachmentService).attach(AUTHOR_ID, POST_ID, listOf(31L))
+
+        assertFailsWith<MediaNotReadyException> { postService.create(AUTHOR_ID, "본문", listOf(31L)) }
     }
 
     @Test
@@ -42,7 +75,7 @@ class PostServiceTests {
         val result = postService.delete(AUTHOR_ID, REPLY_ID)
 
         assertTrue(result.changed)
-        verify(postRepository).decreaseCounts(PARENT_ID, PostCountDelta.REPLY)
+        verify(postCountsRepository).decrease(PARENT_ID, PostCountDelta.REPLY)
     }
 
     @Test
@@ -51,8 +84,8 @@ class PostServiceTests {
         doReturn(true).`when`(postRepository).softDelete(QUOTE_ID)
 
         assertTrue(postService.delete(AUTHOR_ID, QUOTE_ID).changed)
-        verify(postRepository).decreaseCounts(PARENT_ID, PostCountDelta.QUOTE)
-        verify(postRepository, never()).decreaseCounts(PARENT_ID, PostCountDelta.REPLY)
+        verify(postCountsRepository).decrease(PARENT_ID, PostCountDelta.QUOTE)
+        verify(postCountsRepository, never()).decrease(PARENT_ID, PostCountDelta.REPLY)
     }
 
     @Test
@@ -62,12 +95,19 @@ class PostServiceTests {
         doReturn(3).`when`(postRepository).softDeleteRepostsOf(POST_ID)
 
         assertTrue(postService.delete(AUTHOR_ID, POST_ID).changed)
-        verify(postRepository).decreaseCounts(POST_ID, PostCountDelta(repost = 3))
+        verify(postCountsRepository).decrease(POST_ID, PostCountDelta(repost = 3))
     }
 
     @Test
     fun `리포스트 행을 삭제할 때는 캐스케이드하지 않는다`() {
-        doReturn(Post(authorId = AUTHOR_ID, content = "", repostOfId = PARENT_ID, id = REPOST_ID)).`when`(postRepository).findById(REPOST_ID)
+        doReturn(
+            Post(
+                authorId = AUTHOR_ID,
+                content = "",
+                repostOfId = PARENT_ID,
+                id = REPOST_ID
+            )
+        ).`when`(postRepository).findById(REPOST_ID)
         doReturn(true).`when`(postRepository).softDelete(REPOST_ID)
 
         postService.delete(AUTHOR_ID, REPOST_ID)
@@ -76,48 +116,18 @@ class PostServiceTests {
 
     @Test
     fun `작성자가 리포스트 행을 삭제하면 원본의 리포스트 수를 내린다`() {
-        doReturn(Post(authorId = AUTHOR_ID, content = "", repostOfId = PARENT_ID, id = REPOST_ID)).`when`(postRepository).findById(REPOST_ID)
+        doReturn(
+            Post(
+                authorId = AUTHOR_ID,
+                content = "",
+                repostOfId = PARENT_ID,
+                id = REPOST_ID
+            )
+        ).`when`(postRepository).findById(REPOST_ID)
         doReturn(true).`when`(postRepository).softDelete(REPOST_ID)
 
         assertTrue(postService.delete(AUTHOR_ID, REPOST_ID).changed)
-        verify(postRepository).decreaseCounts(PARENT_ID, PostCountDelta.REPOST)
-    }
-
-    @Test
-    fun `리포스트 행을 대상으로 지목하면 원본으로 해석된다`() {
-        doReturn(Post(authorId = OTHER_ID, content = "", repostOfId = POST_ID, id = REPOST_ID)).`when`(postRepository).findActiveById(REPOST_ID)
-        doReturn(post(POST_ID, AUTHOR_ID)).`when`(postRepository).findActiveById(POST_ID)
-        doReturn(post(POST_ID, AUTHOR_ID)).`when`(postRepository).findActiveByIdForShare(POST_ID)
-
-        assertEquals(POST_ID, postService.resolveTarget(REPOST_ID).id)
-        assertEquals(POST_ID, postService.resolveTarget(POST_ID).id)
-    }
-
-    @Test
-    fun `대상 확인은 최종 대상만 공유 잠금으로 다시 읽고 리포스트 행은 잠그지 않는다`() {
-        doReturn(Post(authorId = OTHER_ID, content = "", repostOfId = POST_ID, id = REPOST_ID)).`when`(postRepository).findActiveById(REPOST_ID)
-        doReturn(post(POST_ID, AUTHOR_ID)).`when`(postRepository).findActiveByIdForShare(POST_ID)
-
-        postService.resolveTarget(REPOST_ID)
-
-        verify(postRepository).findActiveByIdForShare(POST_ID)
-        verify(postRepository, never()).findActiveByIdForShare(REPOST_ID)
-    }
-
-    @Test
-    fun `원본이 삭제된 리포스트 행은 대상이 될 수 없다`() {
-        doReturn(Post(authorId = OTHER_ID, content = "", repostOfId = POST_ID, id = REPOST_ID)).`when`(postRepository).findActiveById(REPOST_ID)
-        doReturn(null).`when`(postRepository).findActiveByIdForShare(POST_ID)
-
-        assertFailsWith<PostNotFoundException> { postService.resolveTarget(REPOST_ID) }
-    }
-
-    @Test
-    fun `잠금 없이 읽은 뒤 삭제된 대상은 공유 잠금 재확인에서 404 가 된다`() {
-        doReturn(post(POST_ID, AUTHOR_ID)).`when`(postRepository).findActiveById(POST_ID)
-        doReturn(null).`when`(postRepository).findActiveByIdForShare(POST_ID)
-
-        assertFailsWith<PostNotFoundException> { postService.resolveTarget(POST_ID) }
+        verify(postCountsRepository).decrease(PARENT_ID, PostCountDelta.REPOST)
     }
 
     @Test
@@ -128,10 +138,10 @@ class PostServiceTests {
 
         assertTrue(postService.delete(AUTHOR_ID, REPLY_ID).changed)
 
-        val order = inOrder(postRepository)
-        order.verify(postRepository).decreaseCounts(PARENT_ID, PostCountDelta.REPLY)
+        val order = inOrder(postRepository, postCountsRepository)
+        order.verify(postCountsRepository).decrease(PARENT_ID, PostCountDelta.REPLY)
         order.verify(postRepository).softDeleteRepostsOf(REPLY_ID)
-        order.verify(postRepository).decreaseCounts(REPLY_ID, PostCountDelta(repost = 2))
+        order.verify(postCountsRepository).decrease(REPLY_ID, PostCountDelta(repost = 2))
     }
 
     @Test
@@ -142,7 +152,7 @@ class PostServiceTests {
         val result = postService.delete(AUTHOR_ID, REPLY_ID)
 
         assertFalse(result.changed)
-        verify(postRepository, never()).decreaseCounts(PARENT_ID, PostCountDelta.REPLY)
+        verify(postCountsRepository, never()).decrease(PARENT_ID, PostCountDelta.REPLY)
     }
 
     @Test
@@ -162,21 +172,31 @@ class PostServiceTests {
 
     @Test
     fun `삭제된 게시글은 조회되지 않는다`() {
-        doReturn(null).`when`(postRepository).findActiveById(POST_ID)
+        doThrow(PostNotFoundException()).`when`(postTargetResolver).getActive(POST_ID)
 
         assertFailsWith<PostNotFoundException> { postService.get(POST_ID) }
+        verify(postCountsRepository, never()).get(POST_ID)
     }
 
     @Test
     fun `통계 행이 없는 게시글은 0 으로 조회된다`() {
-        doReturn(post(POST_ID, AUTHOR_ID)).`when`(postRepository).findActiveById(POST_ID)
-        doReturn(PostCounts(postId = POST_ID)).`when`(postRepository).getCounts(POST_ID)
+        doReturn(post(POST_ID, AUTHOR_ID)).`when`(postTargetResolver).getActive(POST_ID)
+        doReturn(PostCounts(postId = POST_ID)).`when`(postCountsRepository).get(POST_ID)
 
         val detail = postService.get(POST_ID)
 
         assertEquals(0L, detail.counts.replyCount)
         assertEquals(0L, detail.counts.viewCount)
     }
+
+    private fun mediaDetail(id: Long) = MediaDetail(
+        id = id,
+        contentType = "image/png",
+        sizeBytes = 10L,
+        width = 1,
+        height = 1,
+        url = java.net.URL("https://media.test/download/$id"),
+    )
 
     private fun post(id: Long, authorId: Long, parentPostId: Long? = null, quotedPostId: Long? = null) = Post(
         authorId = authorId,

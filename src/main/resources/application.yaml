@@ -25,3 +25,11 @@ server:
         http-only: true
         same-site: lax
         secure: ${SESSION_COOKIE_SECURE:false}
+sns:
+  media:
+    s3:
+      bucket: ${MEDIA_S3_BUCKET:sns-media}
+      region: ${AWS_REGION:ap-northeast-2}
+    upload-url-ttl: 10m
+    download-url-ttl: 15m
+    max-size-bytes: 10485760 # 10MB

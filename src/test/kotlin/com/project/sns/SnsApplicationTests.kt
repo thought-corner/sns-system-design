@@ -10,7 +10,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @SpringBootTest
-@Import(TestSessionConfig::class)
+@Import(TestSessionConfig::class, TestMediaStorageConfig::class)
 @PostgresTest
 class SnsApplicationTests {
     @Autowired

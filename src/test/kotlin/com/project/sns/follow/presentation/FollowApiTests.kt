@@ -1,6 +1,7 @@
 package com.project.sns.follow.presentation
 
 import com.project.sns.PostgresTest
+import com.project.sns.TestMediaStorageConfig
 import com.project.sns.TestSessionConfig
 import com.project.sns.follow.infrastructure.SpringDataFollowCountsJpaRepository
 import com.project.sns.follow.infrastructure.SpringDataFollowJpaRepository
@@ -33,7 +34,7 @@ import kotlin.test.assertNull
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestSessionConfig::class)
+@Import(TestSessionConfig::class, TestMediaStorageConfig::class)
 @PostgresTest
 class FollowApiTests {
     @Autowired
@@ -131,7 +132,8 @@ class FollowApiTests {
     // 인기 사용자의 카운터 행(핫 로우)에 서로 다른 행위자의 증감이 몰리고, 맞팔로우가 교차해 잠금 순서가 엇갈리는 상황.
     @Test
     fun `서로 다른 사용자들이 동시에 팔로우하고 맞팔로우해도 카운터는 관계 수와 같다`() {
-        val followers = (1..CONCURRENT_REQUESTS).map { userRepository.saveAndFlush(user("follower$it@example.com", "팔로워$it")) }
+        val followers =
+            (1..CONCURRENT_REQUESTS).map { userRepository.saveAndFlush(user("follower$it@example.com", "팔로워$it")) }
         val start = CountDownLatch(1)
         val executor = Executors.newFixedThreadPool(CONCURRENT_REQUESTS * 2)
 
@@ -140,12 +142,16 @@ class FollowApiTests {
                 listOf(
                     executor.submit<Int> {
                         start.await()
-                        mockMvc.perform(put("/api/users/${target.id}/follow").with(user(follower.id.toString())).with(csrf()))
+                        mockMvc.perform(
+                            put("/api/users/${target.id}/follow").with(user(follower.id.toString())).with(csrf())
+                        )
                             .andReturn().response.status
                     },
                     executor.submit<Int> {
                         start.await()
-                        mockMvc.perform(put("/api/users/${follower.id}/follow").with(user(target.id.toString())).with(csrf()))
+                        mockMvc.perform(
+                            put("/api/users/${follower.id}/follow").with(user(target.id.toString())).with(csrf())
+                        )
                             .andReturn().response.status
                     },
                 )
@@ -157,7 +163,10 @@ class FollowApiTests {
             assertEquals(List(CONCURRENT_REQUESTS * 2) { 204 }, statuses)
             assertCountsMatchRelations(target.id!!)
             assertEquals(CONCURRENT_REQUESTS.toLong(), followCountsRepository.findById(target.id!!).get().followerCount)
-            assertEquals(CONCURRENT_REQUESTS.toLong(), followCountsRepository.findById(target.id!!).get().followingCount)
+            assertEquals(
+                CONCURRENT_REQUESTS.toLong(),
+                followCountsRepository.findById(target.id!!).get().followingCount
+            )
             followers.forEach { assertCountsMatchRelations(it.id!!) }
         } finally {
             executor.shutdownNow()
@@ -237,8 +246,16 @@ class FollowApiTests {
     private fun assertCountsMatchRelations(vararg userIds: Long) {
         userIds.forEach { userId ->
             val counts = followCountsRepository.findById(userId).orElse(null)
-            assertEquals(followRepository.countFollowers(userId), counts?.followerCount ?: 0L, "followerCount of $userId")
-            assertEquals(followRepository.countFollowing(userId), counts?.followingCount ?: 0L, "followingCount of $userId")
+            assertEquals(
+                followRepository.countFollowers(userId),
+                counts?.followerCount ?: 0L,
+                "followerCount of $userId"
+            )
+            assertEquals(
+                followRepository.countFollowing(userId),
+                counts?.followingCount ?: 0L,
+                "followingCount of $userId"
+            )
         }
     }
 

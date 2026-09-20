@@ -1,22 +1,30 @@
 package com.project.sns.post.application
 
+import com.project.sns.media.application.MediaAttachmentService
+import com.project.sns.media.application.MediaViewService
 import com.project.sns.post.domain.Post
 import com.project.sns.post.domain.PostCountDelta
 import com.project.sns.post.domain.PostCounts
+import com.project.sns.post.domain.PostCountsRepository
 import com.project.sns.post.domain.PostRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 class QuoteService(
-    private val postService: PostService,
+    private val postTargetResolver: PostTargetResolver,
     private val postRepository: PostRepository,
+    private val postCountsRepository: PostCountsRepository,
+    private val mediaAttachmentService: MediaAttachmentService,
+    private val mediaViewService: MediaViewService,
 ) {
     @Transactional
-    fun quote(authorId: Long, quotedPostId: Long, content: String): PostDetail {
-        val quotedId = requireNotNull(postService.resolveTarget(quotedPostId).id)
+    fun quote(authorId: Long, quotedPostId: Long, content: String, mediaIds: List<Long> = emptyList()): PostDetail {
+        val quotedId = requireNotNull(postTargetResolver.resolveTarget(quotedPostId).id)
         val quote = postRepository.save(Post(authorId = authorId, content = content, quotedPostId = quotedId))
-        postRepository.increaseCounts(quotedId, PostCountDelta.QUOTE)
-        return PostDetail.of(quote, PostCounts(postId = requireNotNull(quote.id)))
+        val quoteId = requireNotNull(quote.id)
+        postCountsRepository.increase(quotedId, PostCountDelta.QUOTE)
+        mediaAttachmentService.attach(authorId, quoteId, mediaIds)
+        return PostDetail.of(quote, PostCounts(postId = quoteId), mediaViewService.listForPost(quoteId))
     }
 }

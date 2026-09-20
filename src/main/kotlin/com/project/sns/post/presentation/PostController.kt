@@ -28,7 +28,7 @@ class PostController(
     fun create(
         @AuthenticatedUser principal: AuthenticatedPrincipal,
         @Valid @RequestBody request: PostContentRequest,
-    ): PostResponse = PostResponse.from(postService.create(principal.id, request.content))
+    ): PostResponse = PostResponse.from(postService.create(principal.id, request.content, request.mediaIds))
 
     @GetMapping("/{postId}")
     fun get(@PathVariable postId: Long): PostResponse = PostResponse.from(postService.get(postId))
@@ -48,7 +48,7 @@ class PostController(
         @AuthenticatedUser principal: AuthenticatedPrincipal,
         @PathVariable postId: Long,
         @Valid @RequestBody request: PostContentRequest,
-    ): PostResponse = PostResponse.from(replyService.reply(principal.id, postId, request.content))
+    ): PostResponse = PostResponse.from(replyService.reply(principal.id, postId, request.content, request.mediaIds))
 
     @PostMapping("/{postId}/quotes")
     @ResponseStatus(HttpStatus.CREATED)
@@ -56,5 +56,5 @@ class PostController(
         @AuthenticatedUser principal: AuthenticatedPrincipal,
         @PathVariable postId: Long,
         @Valid @RequestBody request: PostContentRequest,
-    ): PostResponse = PostResponse.from(quoteService.quote(principal.id, postId, request.content))
+    ): PostResponse = PostResponse.from(quoteService.quote(principal.id, postId, request.content, request.mediaIds))
 }

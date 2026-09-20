@@ -1,6 +1,7 @@
 package com.project.sns.auth.presentation
 
 import com.project.sns.PostgresTest
+import com.project.sns.TestMediaStorageConfig
 import com.project.sns.TestSessionConfig
 import com.project.sns.user.infrastructure.SpringDataUserJpaRepository
 import org.junit.jupiter.api.BeforeEach
@@ -17,7 +18,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestSessionConfig::class)
+@Import(TestSessionConfig::class, TestMediaStorageConfig::class)
 @PostgresTest
 abstract class AuthApiTestSupport {
     @Autowired

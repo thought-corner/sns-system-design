@@ -11,8 +11,6 @@ import org.springframework.data.repository.query.Param
 interface SpringDataPostJpaRepository : JpaRepository<Post, Long> {
     fun findByIdAndDeletedAtIsNull(id: Long): Post?
 
-    // PESSIMISTIC_READ = PG `SELECT … FOR SHARE`. 삭제의 `UPDATE posts … WHERE id = ?` 행 잠금과 직렬화되고,
-    // 늦게 온 쪽은 재평가에서 `deleted_at IS NULL` 이 거짓이 되어 빈 결과(→ 404)를 받는다.
     @Lock(LockModeType.PESSIMISTIC_READ)
     @Query("SELECT post FROM Post post WHERE post.id = :id AND post.deletedAt IS NULL")
     fun findActiveByIdForShare(@Param("id") id: Long): Post?

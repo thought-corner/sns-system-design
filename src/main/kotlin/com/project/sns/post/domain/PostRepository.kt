@@ -12,12 +12,6 @@ interface PostRepository {
 
     fun softDelete(postId: Long): Boolean
 
-    fun getCounts(postId: Long): PostCounts
-
-    fun increaseCounts(postId: Long, delta: PostCountDelta)
-
-    fun decreaseCounts(postId: Long, delta: PostCountDelta)
-
     fun createRepost(authorId: Long, originalId: Long): Boolean
 
     fun softDeleteRepost(authorId: Long, originalId: Long): Boolean
